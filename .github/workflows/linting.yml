@@ -1,0 +1,47 @@
+name: C++ Linting and Formatting
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
+
+jobs:
+  lint:
+    name: Lint C++ Code with clang-tidy, clang-format, and cpp-linter
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Install clang-tidy and clang-format
+        run: sudo apt-get install -y clang-tidy clang-format
+
+      - name: Run clang-tidy if .cpp or .hpp files exist
+        run: |
+          if ls **/*.cpp **/*.hpp 1> /dev/null 2>&1; then
+            clang-tidy **/*.cpp **/*.hpp -- -std=c++17
+          else
+            echo "No .cpp or .hpp files to lint."
+          fi
+
+      - name: Check code formatting with clang-format if .cpp or .hpp files exist
+        run: |
+          if ls **/*.cpp **/*.hpp 1> /dev/null 2>&1; then
+            clang-format -style=file -output-replacements-xml **/*.cpp **/*.hpp | grep "<replacement " > format.patch
+            if [ -s format.patch ]; then
+              echo "Code is not formatted properly. Run 'clang-format -i' to fix."
+              exit 1
+            else
+              echo "Code is properly formatted."
+            fi
+          else
+            echo "No .cpp or .hpp files to format."
+          fi
+
+      - name: C/C++ Linter
+        uses: cpp-linter/cpp-linter-action@v2.12.0
+
